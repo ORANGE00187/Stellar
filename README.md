@@ -1,4 +1,4 @@
-# 🌠 Stellar ✨ The AI-Powered Creation Engine
+# Stellar ✨ The AI-Powered Creation Engine
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.12-blue.svg)
@@ -14,7 +14,7 @@
 
 ## 🌟 Core Features: The Five Modes of Creation
 
-### 🌌 **Stellar Mode**
+### **Stellar Mode**
 The foundational conversational AI experience.
 
 - **Dynamic Model Selection**: Switch between AI models (Emerald, Lunarity, Crimson, Obsidian).
