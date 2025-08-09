@@ -1621,6 +1621,9 @@ pre::-webkit-scrollbar-track,
         .workspace-header-left { display: flex; gap: 10px; }
         #codelabLanguageSelector { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--primary-text-color); border-radius: 6px; padding: 5px 10px; font-size: 0.9rem; }
         .CodeMirror { height: 100%; font-size: 1rem; }
+        .CodeMirror-lines {
+    padding-left: 4px !important;
+}
         .workspace-footer { display: flex; justify-content: flex-end; padding-top: 15px; gap: 10px; flex-shrink: 0; }
         .codelab-action-btn { padding: 10px 20px; font-size: 0.95rem; font-weight: 500; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
         .codelab-ai-btn { background-color: rgba(123, 97, 255, 0.15); color: var(--secondary-text-color); border: 1px solid var(--user-msg-border); }
@@ -1640,6 +1643,8 @@ pre::-webkit-scrollbar-track,
         #workspace-panel.html-mode-active #html-preview-container { display: block; width: 50%; }
         #workspace-panel.html-mode-active #codelab-output-panel,
         #workspace-panel.html-mode-active .workspace-footer { display: none; }
+        
+
     </style>
 </head>
 
@@ -6063,7 +6068,6 @@ if (stopBtn) stopBtn.addEventListener('click', handleStopGeneration);
     }
 }
 
-                // REPLACE the old renderProblem function with this new one
 function renderProblem(problem, testCases) {
     currentCodeLabProblem = problem;
     const mentorPanel = document.getElementById('ai-mentor-panel');
@@ -6073,8 +6077,8 @@ function renderProblem(problem, testCases) {
 
     if (!mentorPanel || !problemDisplay || !generationContainer || !newProblemBtn) return;
 
-    generationContainer.style.display = 'none'; // Hide the generator form
-    newProblemBtn.style.display = 'block';     // Show the 'New Problem' button
+    generationContainer.style.display = 'none';
+    newProblemBtn.style.display = 'block';
 
     const tagsHtml = problem.topic_tags 
         ? `<div class="codelab-topic-tags">Tags: ${escapeHtml(problem.topic_tags)}</div>` 
@@ -6086,15 +6090,25 @@ function renderProblem(problem, testCases) {
     if (testCases && testCases.length > 0) {
         testCases.forEach((tc, index) => {
             let formattedInput = '';
-            try { formattedInput = JSON.stringify(JSON.parse(tc.input_data), null, 2); }
-            catch { formattedInput = tc.input_data; }
+            // This logic now correctly handles different data types from the server
+            if (typeof tc.input_data === 'object' && tc.input_data !== null && !Array.isArray(tc.input_data)) {
+                 formattedInput = Object.entries(tc.input_data)
+                    .map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
+                    .join(', ');
+            } else {
+                 formattedInput = JSON.stringify(tc.input_data);
+            }
+            
+            // This ensures the output is always displayed as a string
+            const formattedOutput = JSON.stringify(tc.expected_output);
 
             testCasesHtml += `
                 <div class="codelab-test-case">
                     <strong>Example ${index + 1}:</strong>
-                    <pre><code class="language-json">${escapeHtml(formattedInput)}</code></pre>
-                    <strong>Expected Output:</strong>
-                    <pre><code class="language-json">${escapeHtml(tc.expected_output)}</code></pre>
+                    <div style="margin-top: 8px; padding-left: 10px;">
+                        <p><strong>Input:</strong> <code style="background-color: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">${escapeHtml(formattedInput)}</code></p>
+                        <p><strong>Output:</strong> <code style="background-color: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">${escapeHtml(formattedOutput)}</code></p>
+                    </div>
                 </div>
             `;
         });
@@ -6123,24 +6137,28 @@ function renderProblem(problem, testCases) {
 let codeLabEditor = null;
 
                 function initializeCodeEditor() {
-            const editorContainer = document.getElementById('code-editor-container');
-            if (editorContainer && !codeLabEditor) {
-                codeLabEditor = CodeMirror(editorContainer, {
-                    value: "# Welcome to Stellar CodeLab!\n# Select HTML from the dropdown to try the live preview.\n\nprint('Hello, CodeLab!')",
-                    mode: 'python',
-                    theme: 'dracula',
-                    lineNumbers: true,
-                    indentUnit: 4,
-                    matchBrackets: true,
-                    autoCloseBrackets: true
-                });
+    const editorContainer = document.getElementById('code-editor-container');
+    if (editorContainer && !codeLabEditor) {
+        codeLabEditor = CodeMirror(editorContainer, {
+            value: "# Welcome to Stellar CodeLab!\n# Select HTML from the dropdown to try the live preview.\n\nprint('Hello, CodeLab!')",
+            mode: 'python',
+            theme: 'dracula',
+            lineNumbers: true,
+            indentUnit: 4,
+            matchBrackets: true,
+            autoCloseBrackets: true
+        });
 
-                codeLabEditor.on('keyup', () => {
-                    clearTimeout(renderHtmlDebounceTimer);
-                    renderHtmlDebounceTimer = setTimeout(renderLivePreview, 300);
-                });
-            }
-        }
+        // --- ADD THIS LINE TO FIX THE LAYOUT BUG ---
+        setTimeout(() => { codeLabEditor.refresh(); }, 1);
+        // --- END OF FIX ---
+
+        codeLabEditor.on('keyup', () => {
+            clearTimeout(renderHtmlDebounceTimer);
+            renderHtmlDebounceTimer = setTimeout(renderLivePreview, 300);
+        });
+    }
+}
        async function handleGenerateProblem(event) {
     event.preventDefault();
     const input = document.getElementById('problemRequestInput');
